@@ -2,7 +2,8 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
 from PIL import Image
 import numpy as np
-
+import Encryption
+import Decryption
 # Encryption Function
 def encrypt_image(image_path, secret_message, passcode):
     if len(passcode) != 4:
@@ -17,27 +18,7 @@ def encrypt_image(image_path, secret_message, passcode):
 
         # Add delimiter to mark the end of the message
         secret_message += str(passcode)+"#####"
-        binary_message = ''.join(format(ord(char), '08b') for char in secret_message)
-        message = ""
-        for i in range(0, len(binary_message), 8):
-            byte = binary_message[i:i+8]
-            if byte:
-                message += chr(int(byte, 2))
-            if "#####" in message: 
-                 # Stop at delimiter
-                break
-        message_index = 0
-
-        # Embed the binary message into the image pixels
-        for i in range(pixels.shape[0]):
-            for j in range(pixels.shape[1]):
-                for k in range(3):  # RGB channels
-                    if message_index < len(binary_message):
-                        # Replace the LSB of the pixel with the binary message bit
-                        pixels[i][j][k] = (pixels[i][j][k] & 0b11111110) | int(binary_message[message_index])
-                        message_index += 1 
-                    else:
-                        break
+        pixels = Encryption.encryption(secret_message, pixels)
 
         # Save the encrypted image
         encrypted_img = Image.fromarray(pixels)
@@ -58,23 +39,7 @@ def decrypt_image(image_path, passcode):
         img = img.convert("RGB")  # Convert to RGB mode
         pixels = np.array(img)
 
-        # Extract the binary message from the image pixels
-        binary_message = ""
-        for i in range(pixels.shape[0]):
-            for j in range(pixels.shape[1]):
-                for k in range(3):  # RGB channels
-                    binary_message += str(pixels[i][j][k] & 1)  # Extract LSB directly as string
-
-
-        # Convert binary message to characters
-        message = ""
-        for i in range(0, len(binary_message), 8):
-            byte = binary_message[i:i+8]
-            if byte:
-                message += chr(int(byte, 2))
-            if "#####" in message: 
-                # print('hello') # Stop at delimiter
-                break
+        message = Decryption.decryption(pixels)
         # Verify if the message was found
         cpasscode = message[-9:-5]
         if message[-5:]=="#####":
